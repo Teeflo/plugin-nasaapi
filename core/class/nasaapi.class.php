@@ -21,6 +21,7 @@ require_once __DIR__  . '/../../../../core/php/core.inc.php';
 class nasaapi extends eqLogic {
   /*     * *************************Attributs****************************** */
   public function getAPOD() {
+	  log::add(__CLASS__,"debug", "Start getAPOD");
 	  // Clé API de la NASA
 	  $api_key = $this->getConfiguration('param1');
 	  // URL de l'API de la NASA
@@ -32,9 +33,37 @@ class nasaapi extends eqLogic {
 	  $explication = $data['explanation'];
 	  $url = $data['url'];
 	  $titre = $data['title'];
-	  // Affichage de l'explication
-	  return[$explication, $url, $titre];
-  }
+	  
+	  
+	  $this->downloadImage($url, __DIR__ ."/../../data/image");
+      $this->checkAndUpdateCmd('explanation', $explication); // Met à jour la commande "explication" avec l'explication de la photo
+      $this->checkAndUpdateCmd('url', $url); // Met à jour la commande "url" avec l'URL de la photo
+      $this->checkAndUpdateCmd('titre', $titre); // Met à jour la commande "titre" avec le titre de la photo
+		
+	  //$eqLogic -> downloadImage($url, "/../data/image");
+	  log::add(__CLASS__,"debug", "End getAPOD");
+	  
+	  
+    }
+  public function downloadImage($url, $destinationPath) {
+	  $filename = basename($url); // Récupère le nom du fichier à partir de l'URL
+	  $destinationFile = $destinationPath . '/' . $filename; // Chemin complet du fichier de destination
+	  
+      $imageContent = file_get_contents($url); // Télécharge le contenu de l'image à partir de l'URL
+      if ($imageContent === false) {
+        log::add(__CLASS__, 'debug', "Unable to download image from URL: $url");
+        return false;
+      }
+
+      $imageSaved = file_put_contents($destinationFile, $imageContent); // Sauvegarde le contenu de l'image localement
+      if ($imageSaved === false) {
+        log::add(__CLASS__, 'debug', "Unable to save image to destination: $destinationFile");
+        return false;
+      }
+
+      log::add(__CLASS__, 'debug', "Image downloaded and saved successfully: $destinationFile");
+      $this->checkAndUpdateCmd("image", $destinationFile);
+    }
 
   /*
   * Permet de définir les possibilités de personnalisation du widget (en cas d'utilisation de la fonction 'toHtml' par exemple)
@@ -156,7 +185,18 @@ class nasaapi extends eqLogic {
 	  $urldelimage->setType('info');
 	  $urldelimage->setSubType('string');
 	  $urldelimage->save();
-}
+	  
+	  $image = $this->getCmd(null, 'image');
+	  if (!is_object($image)) {
+		  $image = new nasaapiCmd();
+		  $image->setName(__('Image', __FILE__));
+	  }
+	  $image->setEqLogic_id($this->getId());
+	  $image->setLogicalId('image');
+	  $image->setType('info');
+	  $image->setSubType('string');
+	  $image->save();
+  }
 
   // Fonction exécutée automatiquement avant la suppression de l'équipement
   public function preRemove() {
@@ -200,7 +240,33 @@ class nasaapi extends eqLogic {
   */
 
   /*     * **********************Getteur Setteur*************************** */
+  public function toHtml($_version = 'dashboard') {
+	  $replace = $this->preToHtml($_version);
+      if (!is_array($replace)) {
+          return $replace;
+      }
+      $version = jeedom::versionAlias($_version);
+	  
+      $url = $this->getCmd('info', 'url');
+	  $replace['#url#'] = (is_object($url)) ? $url->execCmd() : "";
+	  
+      $title = $this->getCmd('info','titre');
+	  $replace['#title#'] = (is_object($title)) ? $title->execCmd() : "";
+	  
+      $explanation = $this->getCmd('info','explanation');
+	  $replace['#explanation#'] = (is_object($explanation)) ? $explanation->execCmd() : "";
+	  
+	  $image = $this->getCmd('info','image');
+	  $replace['#image#'] = (is_object($image)) ? $image->execCmd() : "";
+      
 
+
+      if ($version == 'v4') {
+          $replace['#background#'] = $this->getDisplay('background', 'dashboard');
+      }
+      return $this->postToHtml($_version, template_replace($replace, getTemplate('core', $version, 'eqLogic', 'nasaapi')));//  retourne notre template qui se nomme eqlogic pour le widget	  
+
+    }
 }
 
 class nasaapiCmd extends cmd {
@@ -223,26 +289,19 @@ class nasaapiCmd extends cmd {
   */
 
   // Exécution d'une commande
-  /*public function execute($_options = array()) {
-	  $eqlogic = $this->getEqLogic(); //récupère l'éqlogic de la commande $this
-	  switch ($this->getLogicalId()) { //vérifie le logicalid de la commande
-	    case 'url': // LogicalId de la commande rafraîchir que l’on a créé dans la méthode Postsave de la classe nasaapi	  .
-	    $info = $eqlogic->getPhotoOfTheDayUrl(); //On lance la fonction getPhotoOfTheDayUrl() pour récupérer l'url et on la stocke dans la variable $info
-	    $eqlogic->checkAndUpdateCmd('url', $urldelimage); //on met à jour la commande avec le LogicalId "story"  de l'eqlogic
-	    break;
-	}
-  }*/
   public function execute($_options = array()) {
 	  $eqlogic = $this->getEqLogic(); //récupère l'éqlogic de la commande $this
 	  switch ($this->getLogicalId()) { //vérifie le logicalid de la commande
 	    case 'refresh': // LogicalId de la commande rafraîchir que l’on a créé dans la méthode Postsave de la classe vdm .
-		$data = $eqlogic->getAPOD(); // Récupère les données de l'API de la NASA
-        $eqlogic->checkAndUpdateCmd('explanation', $data[0]); // Met à jour la commande "explication" avec l'explication de la photo
-        $eqlogic->checkAndUpdateCmd('url', $data[1]); // Met à jour la commande "url" avec l'URL de la photo
-        $eqlogic->checkAndUpdateCmd('titre', $data[2]); // Met à jour la commande "titre" avec le titre de la photo
-		break;
+		log::add(__CLASS__,"debug", "Case refresh");
+		$eqlogic->getAPOD(); // Récupère les données de l'API de la NASA
+		
+		
 	    }
 	}
+
+		 
+
   /*     * **********************Getteur Setteur*************************** */
 
 }
