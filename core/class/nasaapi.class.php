@@ -37,7 +37,6 @@ class nasaapi extends eqLogic {
 	  $imageInfo = getimagesize($url);
 	  $width = $imageInfo[0]/4;
       $height = $imageInfo[1]/4;
-	  //log::add(__CLASS__,"debug", "taille de l'image: width = $width , height = $height");
 	  
 	  log::add(__CLASS__,"debug", "Update des commandes ...");
 	  $this->downloadImage($url, __DIR__ ."/../../data/image");
