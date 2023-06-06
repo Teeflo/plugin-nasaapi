@@ -34,13 +34,21 @@ class nasaapi extends eqLogic {
 	  $url = $data['url'];
 	  $titre = $data['title'];
 	  
+	  $imageInfo = getimagesize($url);
+	  $width = $imageInfo[0]/4;
+      $height = $imageInfo[1]/4;
+	  //log::add(__CLASS__,"debug", "taille de l'image: width = $width , height = $height");
 	  
+	  log::add(__CLASS__,"debug", "Update des commandes ...");
 	  $this->downloadImage($url, __DIR__ ."/../../data/image");
       $this->checkAndUpdateCmd('explanation', $explication); // Met à jour la commande "explication" avec l'explication de la photo
       $this->checkAndUpdateCmd('url', $url); // Met à jour la commande "url" avec l'URL de la photo
-      $this->checkAndUpdateCmd('titre', $titre); // Met à jour la commande "titre" avec le titre de la photo
-		
-	  //$eqLogic -> downloadImage($url, "/../data/image");
+      $this->checkAndUpdateCmd('title', $titre); // Met à jour la commande "titre" avec le titre de la photo
+	  $this->checkAndUpdateCmd('width', $width); // Met à jour la commande "width" avec la largeur de la photo
+	  $this->checkAndUpdateCmd('height', $height); // Met à jour la commande avec la hauteur de la photo
+	  log::add(__CLASS__,"debug", "Update des commandes réussi: explanation = $explication, url = $url, title = $titre, width = $width, height = $height");
+	  
+	  
 	  log::add(__CLASS__,"debug", "End getAPOD");
 	  
 	  
@@ -107,16 +115,19 @@ class nasaapi extends eqLogic {
   
   // Fonction exécutée automatiquement toutes les heures par Jeedom
   public static function cronHourly() {
+	  /*foreach (self::byType(__CLASS__,true) as $eqLogic) {
+    $eqLogic->getAPOD();
+	  }*/
+  }
+  
+
+  
+  // Fonction exécutée automatiquement tous les jours par Jeedom
+  public static function cronDaily() {
 	  foreach (self::byType(__CLASS__,true) as $eqLogic) {
     $eqLogic->getAPOD();
 	  }
   }
-  
-
-  /*
-  * Fonction exécutée automatiquement tous les jours par Jeedom
-  public static function cronDaily() {}
-  */
 
   /*     * *********************Méthodes d'instance************************* */
 
@@ -164,13 +175,13 @@ class nasaapi extends eqLogic {
 	  $refresh->setSubType('other');
 	  $refresh->save();
 	  
-	  $title = $this->getCmd(null, 'titre');
+	  $title = $this->getCmd(null, 'title');
 	  if (!is_object($title)) {
 		  $title = new nasaapiCmd();
 		  $title->setName(__('Titre', __FILE__));
 	  }
 	  $title->setEqLogic_id($this->getId());
-	  $title->setLogicalId('titre');
+	  $title->setLogicalId('title');
 	  $title->setType('info');
 	  $title->setSubType('string');
 	  $title->save();
@@ -196,6 +207,28 @@ class nasaapi extends eqLogic {
 	  $image->setType('info');
 	  $image->setSubType('string');
 	  $image->save();
+	  
+	  $width = $this->getCmd(null, 'width');
+	  if (!is_object($width)) {
+		  $width = new nasaapiCmd();
+		  $width->setName(__('width', __FILE__));
+	  }
+	  $width->setEqLogic_id($this->getId());
+	  $width->setLogicalId('width');
+	  $width->setType('info');
+	  $width->setSubType('numeric');
+	  $width->save();
+	  
+	  $height = $this->getCmd(null, 'height');
+	  if (!is_object($height)) {
+		  $height = new nasaapiCmd();
+		  $height->setName(__('height', __FILE__));
+	  }
+	  $height->setEqLogic_id($this->getId());
+	  $height->setLogicalId('height');
+	  $height->setType('info');
+	  $height->setSubType('numeric');
+	  $height->save();
   }
 
   // Fonction exécutée automatiquement avant la suppression de l'équipement
@@ -250,7 +283,7 @@ class nasaapi extends eqLogic {
       $url = $this->getCmd('info', 'url');
 	  $replace['#url#'] = (is_object($url)) ? $url->execCmd() : "";
 	  
-      $title = $this->getCmd('info','titre');
+      $title = $this->getCmd('info','title');
 	  $replace['#title#'] = (is_object($title)) ? $title->execCmd() : "";
 	  
       $explanation = $this->getCmd('info','explanation');
@@ -258,6 +291,12 @@ class nasaapi extends eqLogic {
 	  
 	  $image = $this->getCmd('info','image');
 	  $replace['#image#'] = (is_object($image)) ? $image->execCmd() : "";
+	  
+	  $height = $this->getCmd('info','height');
+	  $replace['#height#'] = (is_object($height)) ? $height->execCmd() : "";
+	  
+	  $width = $this->getCmd('info','width');
+	  $replace['#width#'] = (is_object($width)) ? $width->execCmd() : "";
       
 
 

@@ -2,14 +2,14 @@
 	"id" : "nasaapi",
 	"name" : "Nasa",
 	"description" : {
-		"fr_FR": "Plugin permettant de récupérer des info a partir de l'api de la Nasa"
+		"fr_FR": "Plugin permettant de récupérer des info à partir de l'api de la Nasa, comme la photo du jour, APOD, avec son descriptif."
 	},
 	"licence" : "AGPL",
 	"author" : "Teeflo",
 	"require" : "4.2.0",
-	"category" : "communication",
+	"category" : "organization",
 	"changelog" : "",
 	"documentation" : "",
 	"language" : "",
-	"compatibility" : ""
+	"compatibility" : "miniplus, smart, docker, rpi, diy, mobileapp, v4"
 }
